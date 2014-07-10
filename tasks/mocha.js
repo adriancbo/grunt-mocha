@@ -27,7 +27,7 @@ module.exports = function(grunt) {
   // External lib.
   var phantomjs = require('grunt-lib-phantomjs').init(grunt);
 
-  var reporter;
+  var reporter, waitForCoverage;
 
   // Growl is optional
   var growl;
@@ -50,10 +50,6 @@ module.exports = function(grunt) {
     phantomjs.on('mocha.*', function(test) {
       var name, fullTitle, slow, err;
       var evt = this.event.replace('mocha.', '');
-
-      if (evt === 'end') {
-        phantomjs.halt();
-      }
 
       // Expand test values (and façace the Mocha test object)
       if (test) {
@@ -79,8 +75,26 @@ module.exports = function(grunt) {
       }
 
       // Trigger events for each runner listening
-      for (name in listeners) {
-        listeners[name].emit.call(listeners[name], evt, test, err);
+      var emit = function () {
+        for (name in listeners) {
+          listeners[name].emit.call(listeners[name], evt, test, err);
+        }
+      };
+
+      if (evt === 'end') {
+        var end = function() {
+          phantomjs.halt();
+          emit();
+        };
+        if (waitForCoverage) {
+          if (global._$jscoverage) {
+            end();
+          }
+        } else {
+          end();
+        }
+      } else {
+        emit();
       }
     });
 
@@ -111,6 +125,11 @@ module.exports = function(grunt) {
   // Debugging messages.
   phantomjs.on('debug', grunt.log.debug.bind(grunt.log, 'phantomjs'));
 
+  phantomjs.on('coverage', function(_$jscoverage) {
+    global._$jscoverage = _$jscoverage;
+    phantomjs.emit('mocha.end');
+  });
+
   // ==========================================================================
   // TASKS
   // ==========================================================================
@@ -136,7 +155,9 @@ module.exports = function(grunt) {
       // Log script errors as grunt errors
       logErrors: false,
       // Growl notification when tests pass.
-      growlOnSuccess: true
+      growlOnSuccess: true,
+      // Wait for coverage from PhantomJS page
+      waitForCoverage: false
     });
 
     // Output console messages if log == true
@@ -157,11 +178,13 @@ module.exports = function(grunt) {
       });
     }
 
+    waitForCoverage = options.waitForCoverage;
+
     var optsStr = JSON.stringify(options, null, '  ');
     grunt.verbose.writeln('Options: ' + optsStr);
 
     // Clean Phantomjs options to prevent any conflicts
-    var PhantomjsOptions = _.omit(options, 'reporter', 'urls', 'log', 'bail');
+    var PhantomjsOptions = _.omit(options, 'reporter', 'urls', 'log', 'bail', 'waitForCoverage');
 
     var phantomOptsStr = JSON.stringify(PhantomjsOptions, null, '  ');
     grunt.verbose.writeln('Phantom options: ' + phantomOptsStr);
@@ -189,6 +212,10 @@ module.exports = function(grunt) {
         consoleLog.apply(console, arguments);
         // FIXME: This breaks older versions of mocha
         // processWrite.apply(process.stdout, arguments);
+        output.push(util.format.apply(util, arguments));
+      };
+      process.stdout.write = function() {
+        processWrite.apply(process.stdout, arguments);
         output.push(util.format.apply(util, arguments));
       };
     }
@@ -280,6 +307,7 @@ module.exports = function(grunt) {
       if (dest) {
         // Restore console.log to original and write the output
         console.log = consoleLog;
+        process.stdout.write = processWrite;
         grunt.file.write(dest, output.join('\n'));
       }
 
