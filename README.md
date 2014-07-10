@@ -263,6 +263,36 @@ mocha: {
 },
 ```
 
+#### options.waitForCoverage
+Type: `Boolean`
+Default: `false`
+
+If your coverage data is being built in PhantomJS, you can pass it back to Node for your report to be written. Enabling this options waits for that coverage data to be passed.
+
+```js
+mocha: {
+  test: {
+    options: {
+      reporter: 'HTMLCov',
+      run: false,
+      waitForCoverage: true,
+      urls: [ 'http://localhost:8888/example/test/runner.html' ]
+    },
+    dest: './test/coverage.html'
+  }
+}
+```
+
+In your runner (or JS it includes), `alert` a JSON stringified array where 'coverage' is the first element and the coverage data is the second:
+
+```js
+mocha.run().on('end', function() {
+  coverage = window._$jscoverage; // your global variable may be different
+  // you may also need to manually prepare `coverage` for JSON.stringify
+  alert(JSON.stringify(['coverage', coverage]));
+});
+```
+
 ## Hacks
 
 The PhantomJS -> Grunt superdimensional conduit uses `alert`. If you have disabled or aliased alert in your app, this won't work. I have conveniently set a global `PHANTOMJS` on `window` so you can conditionally override alert in your app.
