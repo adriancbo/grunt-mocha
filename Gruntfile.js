@@ -130,6 +130,16 @@ module.exports = function(grunt) {
         dest: 'example/test/results/xunit.out'
       },
 
+      testCoverage: {
+        options: {
+          reporter: 'HTMLCov',
+          run: false,
+          waitForCoverage: true,
+          urls: ['http://localhost:' + port + '/example/test/testCoverage.html']
+        },
+        dest: 'example/test/results/coverage.html'
+      },
+
       // Test a failing test with bail: true
       testBail: {
         src: ['example/test/testBail.html'],
@@ -203,6 +213,7 @@ module.exports = function(grunt) {
     'mocha:testDest2',
     'verifyDestResults'
   ]);
+  grunt.task.registerTask('testCoverage', ['connect:testUrls', 'mocha:testCoverage']);
   // WARNING: Running this test will cause grunt to fail after mocha:testBail
   grunt.task.registerTask('testBail', ['mocha:testBail', 'mocha:neverTest']);
   grunt.task.registerTask('test', [
@@ -211,6 +222,7 @@ module.exports = function(grunt) {
     'testLog',
     'testReporter',
     'testDest',
+    'testCoverage',
     'testBail'
   ]);
 

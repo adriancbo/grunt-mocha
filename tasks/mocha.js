@@ -202,7 +202,7 @@ module.exports = function(grunt) {
     var dest = this.data.dest;
     var output = [];
     var consoleLog = console.log;
-    // Latest mocha xunit reporter sends to process.stdout instead of console
+    // Latest mocha xunit, htmlcov reporter sends to process.stdout instead of console
     var processWrite = process.stdout.write;
 
 
@@ -210,12 +210,6 @@ module.exports = function(grunt) {
     if (dest) {
       console.log = function() {
         consoleLog.apply(console, arguments);
-        // FIXME: This breaks older versions of mocha
-        // processWrite.apply(process.stdout, arguments);
-        output.push(util.format.apply(util, arguments));
-      };
-      process.stdout.write = function() {
-        processWrite.apply(process.stdout, arguments);
         output.push(util.format.apply(util, arguments));
       };
     }
@@ -237,6 +231,14 @@ module.exports = function(grunt) {
       var Reporter = null;
       if (reporters[options.reporter]) {
         Reporter = reporters[options.reporter];
+
+        // Only hijack stdout if reporter uses it
+        if (dest && (options.reporter === 'XUnit' || options.reporter === 'HTMLCov')) {
+          process.stdout.write = function() {
+            processWrite.apply(process.stdout, arguments);
+            output.push(util.format.apply(util, arguments));
+          };
+        }
       } else {
         // Resolve external reporter module
         var externalReporter;
