@@ -35,7 +35,7 @@ module.exports = function(grunt) {
       // In this example, there's only one, but you can add as many as
       // you want. You can split them up into different groups here
       // ex: admin: [ 'test/admin.html' ]
-      all: ['example/test/**/!(test2|testBail).html'],
+      all: ['example/test/**/!(test2|testBail|coverage).html'],
 
       // Runs 'test/test2.html' with specified mocha options.
       // This variant auto-includes 'bridge.js' so you do not have
@@ -172,6 +172,12 @@ module.exports = function(grunt) {
           port: port + 1,
           base: '.'
         }
+      },
+      testCoverage: {
+        options: {
+          port: port + 2,
+          base: '.'
+        }
       }
     }
   });
@@ -213,7 +219,7 @@ module.exports = function(grunt) {
     'mocha:testDest2',
     'verifyDestResults'
   ]);
-  grunt.task.registerTask('testCoverage', ['connect:testUrls', 'mocha:testCoverage']);
+  grunt.task.registerTask('testCoverage', ['connect:testCoverage', 'mocha:testCoverage']);
   // WARNING: Running this test will cause grunt to fail after mocha:testBail
   grunt.task.registerTask('testBail', ['mocha:testBail', 'mocha:neverTest']);
   grunt.task.registerTask('test', [
